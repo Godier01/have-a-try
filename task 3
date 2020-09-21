@@ -1,0 +1,67 @@
+# 目标
+- 学习特征预处理、缺失值、异常值处理、数据分桶等特征处理方法
+- 学习特征交互、编码、选择的相应方法
+
+## 导入包并读取数据
+```python
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import datetime
+from tqdm import tqdm
+from sklearn.preprocessing import LabelEncoder
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import chi2
+from sklearn.preprocessing import MinMaxScaler
+import xgboost as xgb
+import lightgbm as lgb
+from catboost import CatBoostRegressor
+import warnings
+from sklearn.model_selection import StratifiedKFold, KFold
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, log_loss
+warnings.filterwarnings('ignore')
+#训练集测试集导入
+data_train =pd.read_csv('../train.csv')
+data_test_a = pd.read_csv('../testA.csv')
+```
+## 特征预处理
+
+```python
+#分离出数值型特征和类别型特征
+numerical_fea = list(data_train.select_dtypes(exclude=['object']).columns)
+category_fea = list(filter(lambda x: x not in numerical_fea,list(data_train.columns)))
+label = 'isDefault'
+numerical_fea.remove(label)
+# 查看缺失值
+train.isnull().sun() 
+# 对于数值型变量，取中位数，对于类别型变量，使用众数填充缺失值
+train[numerical_fea] = train[numerical_fea].fillna(train[numerical_fea].median())
+train[category_fea] = train[category_fea].fillna(train[category_fea].mode())
+#重新查看一下缺失值的情况
+train.isnull().sum()
+#查看类别特征
+category_fea
+# isissueDate是时间特征，处理方法为：改造成借款日与最文件中最小的日期的距离的天数
+#最早的日期
+startdate = datetime.datetime.strptime('2007-06-01','%Y-%m-%d')
+#先转换格式再用日期-最早的日期得出天数为新的特征issueDateDT
+for data in [train,testA]:
+   data['issueDate'] =pd.to_datetime(data['issueDate'],format = '%Y-%m-%d')
+   #构造时间特征
+   data['issueDateDT'] = data['issueDate'].apply(lambda x: x - startdate).dt.days
+   
+ # 对employmentLength，空值依然返回空值，>10年的全部分到10这个类别，<1年的分到0这个类别
+def employmentLength_to_int(s):
+   if pd.isnull(s):
+       return s
+   else:
+       return np.int8(s.split(' ')[0]) 
+for data in [train,testA]:
+   data['employmentLength'].replace(to_replace='< 1 year',value='0 year',inplace=True)
+   data['employmentLength'].replace(to_replace='10+ years',value='10 years',inplace=True)
+   data['employmentLength'] = data['employmentLength'].apply(employmentLength_to_int)
+# 对earliesCreditLine提取年份
+for data in [train,testA]:
+    data['earliesCreditLine'] = data['earliesCreditLine'].apply(lambda x : x[-4:]) 
+```
